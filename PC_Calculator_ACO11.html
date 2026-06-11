@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PC Production Calculator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222636;
+    --border: #2e3348;
+    --accent: #4f8ef7;
+    --accent2: #f7c948;
+    --green: #3ecf8e;
+    --red: #f76e6e;
+    --text: #e8eaf0;
+    --muted: #7c8399;
+    --input-bg: #131722;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-icon {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), #7b5ef8);
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -1px;
+  }
+  .logo-text h1 { font-size: 18px; font-weight: 600; }
+  .logo-text p  { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+  .header-meta {
+    display: flex; gap: 24px; flex-wrap: wrap;
+  }
+  .meta-field { display: flex; flex-direction: column; gap: 3px; }
+  .meta-field label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .meta-field input {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    width: 160px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .meta-field input:focus { border-color: var(--accent); }
+
+  /* ── Production summary strip ── */
+  .summary-strip {
+    background: linear-gradient(135deg, #1a2240, #1a2730);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .summary-item { display: flex; flex-direction: column; gap: 2px; }
+  .summary-item .label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .summary-item .value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 22px; font-weight: 600;
+    color: var(--accent2);
+  }
+  .summary-item .unit { font-size: 11px; color: var(--muted); }
+  .summary-divider { width: 1px; height: 40px; background: var(--border); }
+
+  /* ── Main layout ── */
+  main { padding: 28px 32px; max-width: 1400px; }
+
+  .section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Machine cards ── */
+  .machines { display: flex; flex-direction: column; gap: 16px; }
+
+  .machine-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .machine-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .machine-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .machine-tag {
+    background: rgba(79,142,247,.15);
+    color: var(--accent);
+    border: 1px solid rgba(79,142,247,.3);
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .machine-tag.card  { background: rgba(62,207,142,.12); color: var(--green);  border-color: rgba(62,207,142,.3); }
+  .machine-tag.frame { background: rgba(247,201,72,.12);  color: var(--accent2); border-color: rgba(247,201,72,.3); }
+  .machine-tag.blow  { background: rgba(247,110,110,.12); color: var(--red);    border-color: rgba(247,110,110,.3); }
+
+  .machine-title { font-size: 15px; font-weight: 600; }
+
+  .machine-results {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .result-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+  }
+  .result-chip .rc-label { font-size: 10px; color: var(--muted); }
+  .result-chip .rc-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px; font-weight: 600;
+  }
+  .result-chip .rc-value.good   { color: var(--green); }
+  .result-chip .rc-value.warn   { color: var(--accent2); }
+  .result-chip .rc-value.neutral { color: var(--text); }
+
+  /* ── Params grid ── */
+  .params-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 1px;
+    background: var(--border);
+  }
+  .param-cell {
+    background: var(--surface);
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .param-cell label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .param-cell.sub-label { font-size: 9px; color: #555d7a; }
+
+  .param-cell input {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    padding: 6px 8px;
+    border-radius: 5px;
+    outline: none;
+    transition: border-color .15s;
+    width: 100%;
+  }
+  .param-cell input:focus { border-color: var(--accent); }
+  .param-cell input.user-input { border-color: rgba(247,201,72,.4); background: rgba(247,201,72,.04); }
+  .param-cell input[readonly] {
+    background: transparent;
+    border-color: transparent;
+    color: var(--muted);
+    cursor: default;
+    font-size: 13px;
+  }
+  .param-cell .computed {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+    padding: 6px 0;
+  }
+
+  /* ── Blow Room special ── */
+  .blow-room-note {
+    padding: 14px 20px;
+    color: var(--muted);
+    font-size: 12px;
+    font-style: italic;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* ── Note banner ── */
+  .note-banner {
+    margin-top: 24px;
+    background: rgba(247,201,72,.06);
+    border: 1px solid rgba(247,201,72,.2);
+    border-radius: 8px;
+    padding: 12px 18px;
+    display: flex;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--accent2);
+    line-height: 1.6;
+  }
+  .note-banner .icon { flex-shrink: 0; font-size: 16px; margin-top: 1px; }
+
+  /* ── Recalc button ── */
+  .recalc-btn {
+    display: block;
+    margin: 22px 0 0;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 11px 28px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+  }
+  .recalc-btn:hover { background: #3a7be0; }
+  .recalc-btn:active { transform: scale(.98); }
+
+  .warning-banner {
+    margin-top: 12px;
+    background: rgba(247,110,110,.06);
+    border: 1px solid rgba(247,110,110,.2);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--red);
+  }
+
+  /* responsive */
+  @media (max-width: 600px) {
+    header, main, .summary-strip { padding-left: 16px; padding-right: 16px; }
+    .params-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">PC</div>
+    <div class="logo-text">
+      <h1>Production Calculator</h1>
+      <p>Complete Spinning Line · Saurer Autocoro 11</p>
+    </div>
+  </div>
+  <div class="header-meta">
+    <div class="meta-field">
+      <label>Customer</label>
+      <input type="text" id="customer" placeholder="—">
+    </div>
+    <div class="meta-field">
+      <label>Material</label>
+      <input type="text" id="material" placeholder="—">
+    </div>
+    <div class="meta-field">
+      <label>Quotation No.</label>
+      <input type="text" id="quotation" placeholder="—">
+    </div>
+    <div class="meta-field">
+      <label>Production Chart No.</label>
+      <input type="text" id="chartno" placeholder="—">
+    </div>
+  </div>
+</header>
+
+<!-- Summary strip -->
+<div class="summary-strip">
+  <div class="summary-item">
+    <span class="label">Target Production</span>
+    <span class="value" id="sum-production">—</span>
+    <span class="unit">kg/h</span>
+  </div>
+  <div class="summary-divider"></div>
+  <div class="summary-item">
+    <span class="label">Count (Ne)</span>
+    <span class="value" id="sum-ne">—</span>
+    <span class="unit">Ne</span>
+  </div>
+  <div class="summary-divider"></div>
+  <div class="summary-item">
+    <span class="label">Rotor Spindles</span>
+    <span class="value" id="sum-spindles">—</span>
+    <span class="unit">installed</span>
+  </div>
+  <div class="summary-divider"></div>
+  <div class="summary-item">
+    <span class="label">Actual Load</span>
+    <span class="value" id="sum-load">—</span>
+    <span class="unit">%</span>
+  </div>
+  <div class="summary-divider"></div>
+  <div class="summary-item">
+    <span class="label">Blowroom Input</span>
+    <span class="value" id="sum-blowroom">—</span>
+    <span class="unit">kg/h</span>
+  </div>
+</div>
+
+<main>
+  <div class="section-label">Machine Parameters</div>
+  <div class="machines">
+
+    <!-- ═══ OE Rotor Spinning Machine ═══ -->
+    <div class="machine-card" id="card-rotor">
+      <div class="machine-header">
+        <div class="machine-name">
+          <span class="machine-tag">Spinning</span>
+          <span class="machine-title">OE Rotor Spinning Machine — Autocoro 11</span>
+        </div>
+        <div class="machine-results">
+          <div class="result-chip">
+            <span class="rc-label">Req. Spindles</span>
+            <span class="rc-value neutral" id="r-req-spindles">—</span>
+          </div>
+          <div class="result-chip">
+            <span class="rc-label">Installed</span>
+            <span class="rc-value good" id="r-inst-spindles">—</span>
+          </div>
+          <div class="result-chip">
+            <span class="rc-label">Actual Load</span>
+            <span class="rc-value warn" id="r-load">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="params-grid">
+        <div class="param-cell">
+          <label>Production O12 (kg/h) ★</label>
+          <input type="number" class="user-input" id="p-O12" value="372.47" step="0.01" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Count Ne ★</label>
+          <input type="number" class="user-input" id="p-Ne" value="10" step="0.1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Spindles/Machine ★</label>
+          <input type="number" class="user-input" id="p-D12" value="552" step="1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Spindle Speed (rpm) ★</label>
+          <input type="number" class="user-input" id="p-J12" value="110000" step="1000" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Twist Multiplier αe ★</label>
+          <input type="number" class="user-input" id="p-H12" value="4.5" step="0.1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Efficiency ★</label>
+          <input type="number" class="user-input" id="p-L12" value="0.97" step="0.01" min="0" max="1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Waste ★</label>
+          <input type="number" class="user-input" id="p-N12" value="0.005" step="0.001" min="0" max="1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Twist (T/inch)</label>
+          <div class="computed" id="c-I12">—</div>
+        </div>
+        <div class="param-cell">
+          <label>Delivery (m/min)</label>
+          <div class="computed" id="c-K12">—</div>
+        </div>
+        <div class="param-cell">
+          <label>Act. Production (g/Sph)</label>
+          <div class="computed" id="c-M12">—</div>
+        </div>
+        <div class="param-cell">
+          <label>Draft</label>
+          <div class="computed" id="c-F12">—</div>
+        </div>
+        <div class="param-cell">
+          <label>Machines Required</label>
+          <div class="computed" id="c-B12">—</div>
+        </div>
+        <div class="param-cell">
+          <label>Machines Installed</label>
+          <div class="computed" id="c-C12">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Autoleveller Draw Frame ═══ -->
+    <div class="machine-card" id="card-aldf">
+      <div class="machine-header">
+        <div class="machine-name">
+          <span class="machine-tag frame">Draw Frame</span>
+          <span class="machine-title">Autoleveller Draw Frame</span>
+        </div>
+        <div class="machine-results">
+          <div class="result-chip">
+            <span class="rc-label">Machines Req.</span>
+            <span class="rc-value neutral" id="r-aldf-req">—</span>
+          </div>
+          <div class="result-chip">
+            <span class="rc-label">Installed</span>
+            <span class="rc-value good" id="r-aldf-inst">—</span>
+          </div>
+          <div class="result-chip">
+            <span class="rc-label">Actual Load</span>
+            <span class="rc-value warn" id="r-aldf-load">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="params-grid">
+        <div class="param-cell">
+          <label>Count (Ne) ★</label>
+          <input type="number" class="user-input" id="p-E13" value="0.11" step="0.01" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Delivery (m/min) ★</label>
+          <input type="number" class="user-input" id="p-K13" value="200" step="10" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Efficiency ★</label>
+          <input type="number" class="user-input" id="p-L13" value="0.85" step="0.01" min="0" max="1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Waste ★</label>
+          <input type="number" class="user-input" id="p-N13" value="0.03" step="0.005" min="0" max="1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Machines Installed ★</label>
+          <input type="number" class="user-input" id="p-Q13" value="10" step="1" min="1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Act. Production (g/del/h)</label>
+          <div class="computed" id="c-M13">—</div>
+        </div>
+        <div class="param-cell">
+          <label>Required Production (kg/h)</label>
+          <div class="computed" id="c-O13">—</div>
+        </div>
+        <div class="param-cell">
+          <label>Req. Deliveries</label>
+          <div class="computed" id="c-P13">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Draw Frame ═══ -->
+    <div class="machine-card" id="card-df">
+      <div class="machine-header">
+        <div class="machine-name">
+          <span class="machine-tag frame">Draw Frame</span>
+          <span class="machine-title">Draw Frame</span>
+        </div>
+        <div class="machine-results">
+          <div class="result-chip">
+            <span class="rc-label">Machines Req.</span>
+            <span class="rc-value neutral" id="r-df-req">—</span>
+          </div>
+          <div class="result-chip">
+            <span class="rc-label">Installed</span>
+            <span class="rc-value good" id="r-df-inst">—</span>
+          </div>
+          <div class="result-chip">
+            <span class="rc-label">Actual Load</span>
+            <span class="rc-value warn" id="r-df-load">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="params-grid">
+        <div class="param-cell">
+          <label>Count (Ne) ★</label>
+          <input type="number" class="user-input" id="p-E14" value="0.1" step="0.01" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Delivery (m/min) ★</label>
+          <input type="number" class="user-input" id="p-K14" value="200" step="10" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Efficiency ★</label>
+          <input type="number" class="user-input" id="p-L14" value="0.85" step="0.01" min="0" max="1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Waste ★</label>
+          <input type="number" class="user-input" id="p-N14" value="0.04" step="0.005" min="0" max="1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Machines Installed ★</label>
+          <input type="number" class="user-input" id="p-Q14" value="9" step="1" min="1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Act. Production (g/del/h)</label>
+          <div class="computed" id="c-M14">—</div>
+        </div>
+        <div class="param-cell">
+          <label>Required Production (kg/h)</label>
+          <div class="computed" id="c-O14">—</div>
+        </div>
+        <div class="param-cell">
+          <label>Req. Deliveries</label>
+          <div class="computed" id="c-P14">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Saurer AutoCard ═══ -->
+    <div class="machine-card" id="card-ac">
+      <div class="machine-header">
+        <div class="machine-name">
+          <span class="machine-tag card">Card</span>
+          <span class="machine-title">Saurer AutoCard</span>
+        </div>
+        <div class="machine-results">
+          <div class="result-chip">
+            <span class="rc-label">Machines Req.</span>
+            <span class="rc-value neutral" id="r-ac-req">—</span>
+          </div>
+          <div class="result-chip">
+            <span class="rc-label">Installed</span>
+            <span class="rc-value good" id="r-ac-inst">—</span>
+          </div>
+          <div class="result-chip">
+            <span class="rc-label">Actual Load</span>
+            <span class="rc-value warn" id="r-ac-load">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="params-grid">
+        <div class="param-cell">
+          <label>Count (Ne) ★</label>
+          <input type="number" class="user-input" id="p-E15" value="0.1" step="0.01" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Delivery (m/min) ★</label>
+          <input type="number" class="user-input" id="p-K15" value="200" step="10" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Efficiency ★</label>
+          <input type="number" class="user-input" id="p-L15" value="0.95" step="0.01" min="0" max="1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Waste ★</label>
+          <input type="number" class="user-input" id="p-N15" value="0.05" step="0.005" min="0" max="1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Machines Installed ★</label>
+          <input type="number" class="user-input" id="p-Q15" value="9" step="1" min="1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Act. Production (g/del/h)</label>
+          <div class="computed" id="c-M15">—</div>
+        </div>
+        <div class="param-cell">
+          <label>Required Production (kg/h)</label>
+          <div class="computed" id="c-O15">—</div>
+        </div>
+        <div class="param-cell">
+          <label>Req. Deliveries</label>
+          <div class="computed" id="c-P15">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Blow Room ═══ -->
+    <div class="machine-card" id="card-br">
+      <div class="machine-header">
+        <div class="machine-name">
+          <span class="machine-tag blow">Blow Room</span>
+          <span class="machine-title">Blow Room</span>
+        </div>
+        <div class="machine-results">
+          <div class="result-chip">
+            <span class="rc-label">Required Input (kg/h)</span>
+            <span class="rc-value warn" id="r-br-req">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="params-grid">
+        <div class="param-cell">
+          <label>Waste ★</label>
+          <input type="number" class="user-input" id="p-N16" value="0.06" step="0.005" min="0" max="1" oninput="calculate()">
+        </div>
+        <div class="param-cell">
+          <label>Input to Blow Room (O16)</label>
+          <div class="computed" id="c-O16">—</div>
+        </div>
+        <div class="param-cell">
+          <label>Total Raw Material (O17)</label>
+          <div class="computed" id="c-O17">—</div>
+        </div>
+      </div>
+      <div class="blow-room-note">ℹ️ No. of machines not applicable for Blow Room — only required feed rate is calculated.</div>
+    </div>
+
+  </div><!-- /.machines -->
+
+  <button class="recalc-btn" onclick="calculate()">⟳ Recalculate All</button>
+
+  <div class="note-banner">
+    <span class="icon">★</span>
+    <span>Fields marked <strong>★</strong> are user inputs (yellow in the original Excel). All other fields are computed automatically from the formulas.<br>
+    <strong>Tip:</strong> Enter your target production in kg/h for the OE Rotor Spinning Machine and adjust Ne, spindle speed, twist multiplier, and efficiencies to model different scenarios.</span>
+  </div>
+
+  <div class="warning-banner">
+    ⚠️ Do not change computed fields — only modify ★ marked inputs to maintain formula integrity.
+  </div>
+</main>
+
+<script>
+function v(id) { return parseFloat(document.getElementById(id).value) || 0; }
+function set(id, val, decimals=3) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = isFinite(val) ? val.toFixed(decimals) : '—';
+}
+
+function calculate() {
+  // ── Rotor row (row 12) ──
+  const Ne  = v('p-Ne');
+  const D12 = v('p-D12');
+  const J12 = v('p-J12');
+  const H12 = v('p-H12');
+  const L12 = v('p-L12');
+  const N12 = v('p-N12');
+  const O12 = v('p-O12');
+
+  const I12 = H12 * Math.sqrt(Ne);                        // T/inch
+  const K12 = J12 / (I12 / 0.0254);                       // m/min delivery
+  const M12 = (590.5 / Ne) * K12 * 60 * L12 / 1000;      // g/Sph/h
+  const P12 = (O12 * 1000) / M12;                         // req spindles
+  const C12 = Math.ceil(P12 / D12);                       // machines installed
+  const Q12 = D12 * C12;                                  // spindles installed
+  const R12 = P12 / Q12;                                  // actual load
+  const F12 = Ne / v('p-E13');                            // draft
+
+  set('c-I12', I12, 3);
+  set('c-K12', K12, 3);
+  set('c-M12', M12, 3);
+  set('c-F12', F12, 3);
+  set('c-B12', P12 / D12, 3);
+  set('c-C12', C12, 0);
+
+  document.getElementById('r-req-spindles').textContent = isFinite(P12) ? P12.toFixed(1) : '—';
+  document.getElementById('r-inst-spindles').textContent = isFinite(Q12) ? Q12.toFixed(0) : '—';
+  document.getElementById('r-load').textContent = isFinite(R12) ? (R12*100).toFixed(1)+'%' : '—';
+
+  // ── Autoleveller Draw Frame (row 13) ──
+  const E13 = v('p-E13');
+  const K13 = v('p-K13');
+  const L13 = v('p-L13');
+  const N13 = v('p-N13');
+  const Q13 = v('p-Q13');
+
+  const M13 = (590.5 / E13) * K13 * 60 * L13 / 1000;
+  const O13 = O12 / (1 - N12);
+  const P13 = (O13 * 1000) / M13;
+  const R13 = P13 / Q13;
+
+  set('c-M13', M13, 1);
+  set('c-O13', O13, 3);
+  set('c-P13', P13, 3);
+  document.getElementById('r-aldf-req').textContent = isFinite(P13) ? P13.toFixed(3) : '—';
+  document.getElementById('r-aldf-inst').textContent = isFinite(Q13) ? Q13.toFixed(0) : '—';
+  document.getElementById('r-aldf-load').textContent = isFinite(R13) ? (R13*100).toFixed(1)+'%' : '—';
+
+  // ── Draw Frame (row 14) ──
+  const E14 = v('p-E14');
+  const K14 = v('p-K14');
+  const L14 = v('p-L14');
+  const N14 = v('p-N14');
+  const Q14 = v('p-Q14');
+
+  const M14 = (590.5 / E14) * K14 * 60 * L14 / 1000;
+  const O14 = O13 / (1 - N13);
+  const P14 = (O14 * 1000) / M14;
+  const R14 = P14 / Q14;
+
+  set('c-M14', M14, 1);
+  set('c-O14', O14, 3);
+  set('c-P14', P14, 3);
+  document.getElementById('r-df-req').textContent = isFinite(P14) ? P14.toFixed(3) : '—';
+  document.getElementById('r-df-inst').textContent = isFinite(Q14) ? Q14.toFixed(0) : '—';
+  document.getElementById('r-df-load').textContent = isFinite(R14) ? (R14*100).toFixed(1)+'%' : '—';
+
+  // ── Saurer AutoCard (row 15) ──
+  const E15 = v('p-E15');
+  const K15 = v('p-K15');
+  const L15 = v('p-L15');
+  const N15 = v('p-N15');
+  const Q15 = v('p-Q15');
+
+  const M15 = (590.5 / E15) * K15 * 60 * L15 / 1000;
+  const O15 = O14 / (1 - N14);
+  const P15 = (O15 * 1000) / M15;
+  const R15 = P15 / Q15;
+
+  set('c-M15', M15, 1);
+  set('c-O15', O15, 3);
+  set('c-P15', P15, 3);
+  document.getElementById('r-ac-req').textContent = isFinite(P15) ? P15.toFixed(3) : '—';
+  document.getElementById('r-ac-inst').textContent = isFinite(Q15) ? Q15.toFixed(0) : '—';
+  document.getElementById('r-ac-load').textContent = isFinite(R15) ? (R15*100).toFixed(1)+'%' : '—';
+
+  // ── Blow Room (rows 16-17) ──
+  const N16 = v('p-N16');
+  const O16 = O15 / (1 - N15);
+  const O17 = O16 / (1 - N16);
+
+  set('c-O16', O16, 3);
+  set('c-O17', O17, 3);
+  document.getElementById('r-br-req').textContent = isFinite(O17) ? O17.toFixed(2) + ' kg/h' : '—';
+
+  // ── Summary strip ──
+  document.getElementById('sum-production').textContent = isFinite(O12) ? O12.toFixed(2) : '—';
+  document.getElementById('sum-ne').textContent = isFinite(Ne) ? Ne.toFixed(1) : '—';
+  document.getElementById('sum-spindles').textContent = isFinite(Q12) ? Q12.toFixed(0) : '—';
+  document.getElementById('sum-load').textContent = isFinite(R12) ? (R12*100).toFixed(1) : '—';
+  document.getElementById('sum-blowroom').textContent = isFinite(O17) ? O17.toFixed(2) : '—';
+}
+
+// Run on load
+calculate();
+</script>
+</body>
+</html>
